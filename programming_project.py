@@ -44,16 +44,16 @@ def random_walk(x_width, y_width, len_walk = 100):
     
     # intializing velocity vector
     speed_old    = np.random.uniform(min_speed,max_speed) 
-    dir_old      = np.random.randint(0,2*np.pi)
+    dir_old      = np.random.uniform(0,2*np.pi)
     speed_new    = np.random.uniform(min_speed,max_speed) 
-    dir_new      = np.random.randint(0,2*np.pi) 
+    dir_new      = np.random.uniform(0,2*np.pi) 
     
     # computing the initial velocity vector
     velocity_old = speed_old*np.array([np.sin(dir_old),np.cos(dir_old)])
     
     # plaxing the bat in a random position in the room
-    positions[0,0] = np.around(np.random.uniform(0.1,x_width-0.1))
-    positions[0,1] = np.around(np.random.uniform(0.1,y_width-0.1))
+    positions[0,0] = np.random.uniform(0.1,x_width-0.1)
+    positions[0,1] = np.random.uniform(0.1,y_width-0.1)
  
     step = 1
     
@@ -72,28 +72,25 @@ def random_walk(x_width, y_width, len_walk = 100):
         # take a step
         positions[step,:] = np.array([positions[step-1,0]+velocity_new[0],
                             positions[step-1,1]+velocity_new[1]])
-                            
-        if is_outside_wall(x_width, y_width, positions[step,:]):
+
             
-            while is_outside_wall(x_width, y_width, positions[step,:]):
+        while is_outside_wall(x_width, y_width, positions[step,:]):
             
-                #dist_to_wall = np.linalg.norm(positions[step-1,:]-positions[step,:])
-                change_angle = dir_new+np.pi+np.random.uniform(-0.1*np.pi,0.1*np.pi)
-                
-                # bouncing back to at most 80% of the distance of the wall
-                #slowing = np.random.uniform(0.1,0.8)
-                #slowing = 2.
-                #positions[step,:] = np.array([positions[step-1,0]+slowing*dist_to_wall*np.sin(change_angle),
-                #                       positions[step-1,1]+slowing*dist_to_wall*np.cos(change_angle)])
-                positions[step,:] = np.array([positions[step-1,0]+speed_new*np.sin(change_angle),
-                                       positions[step-1,1]+speed_new*np.cos(change_angle)])
-            step += 1
-        else:
-            step += 1
+            #dist_to_wall = np.linalg.norm(positions[step-1,:]-positions[step,:])
+            change_angle = dir_new+np.pi+np.random.uniform(-0.1*np.pi,0.1*np.pi)
+            
+            # bouncing back to at most 80% of the distance of the wall
+            #slowing = np.random.uniform(0.1,0.8)
+            #slowing = 2.
+            #positions[step,:] = np.array([positions[step-1,0]+slowing*dist_to_wall*np.sin(change_angle),
+            #                       positions[step-1,1]+slowing*dist_to_wall*np.cos(change_angle)])
+            positions[step,:] = np.array([positions[step-1,0]+speed_new*np.sin(change_angle),
+                                   positions[step-1,1]+speed_new*np.cos(change_angle)])
+        step += 1
         
         velocity_old = velocity_new
         speed_new    = np.random.uniform(0.2,max_speed)
-        dir_new      = np.random.randint(0,2*np.pi)
+        dir_new      = np.random.uniform(0,2*np.pi)
         
     positions = positions[0:-1,:]    
         
