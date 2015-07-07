@@ -27,7 +27,7 @@ def is_outside_wall(x_width, y_width, curr_position):
     else:
         return True
 
-def random_walk(x_width, y_width, len_walk = 100):
+def random_walk(x_width, y_width, len_walk = 100, weight_smooth = 0.7):
     """
     INPUT:
     x_width: Width in x direction of the room the bat is in 
@@ -39,7 +39,7 @@ def random_walk(x_width, y_width, len_walk = 100):
     """
     #intialize positions vector, setting minimum speed and maximum speed
     positions      = np.zeros((len_walk+1,2))
-    max_speed      = y_width/10.
+    max_speed      = y_width/5.
     min_speed      = y_width/20.
     
     # intializing velocity vector
@@ -66,7 +66,7 @@ def random_walk(x_width, y_width, len_walk = 100):
         f = interp1d([velocity_old[0], velocity_new[0]], [velocity_old[1],velocity_new[1]])
         
         # take a value in the "interpolation range"
-        velocity_x = np.mean([velocity_old[0],velocity_old[0],velocity_new[0]])
+        velocity_x = weight_smooth*velocity_old[0]+(1-weight_smooth)*velocity_new[0]
         velocity_new = np.array([velocity_x,f(velocity_x)])
         
         # take a step
@@ -76,20 +76,13 @@ def random_walk(x_width, y_width, len_walk = 100):
             
         while is_outside_wall(x_width, y_width, positions[step,:]):
             
-            #dist_to_wall = np.linalg.norm(positions[step-1,:]-positions[step,:])
-            change_angle = dir_new+np.pi+np.random.uniform(-0.1*np.pi,0.1*np.pi)
-            
-            # bouncing back to at most 80% of the distance of the wall
-            #slowing = np.random.uniform(0.1,0.8)
-            #slowing = 2.
-            #positions[step,:] = np.array([positions[step-1,0]+slowing*dist_to_wall*np.sin(change_angle),
-            #                       positions[step-1,1]+slowing*dist_to_wall*np.cos(change_angle)])
+            change_angle = dir_new+np.pi+np.random.uniform(-0.01*np.pi,0.01*np.pi)
             positions[step,:] = np.array([positions[step-1,0]+speed_new*np.sin(change_angle),
                                    positions[step-1,1]+speed_new*np.cos(change_angle)])
         step += 1
         
         velocity_old = velocity_new
-        speed_new    = np.random.uniform(0.2,max_speed)
+        speed_new    = np.random.uniform(min_speed,max_speed)
         dir_new      = np.random.uniform(0,2*np.pi)
         
     positions = positions[0:-1,:]    
@@ -153,8 +146,8 @@ def sense_the_walls(position, N_sensors = 4, x_width = 5, y_width = 5):
     sensor_dirs = np.random.uniform(0,2*np.pi,N_sensors)
     
     # calculate the "endpoints" of the sensor vecotrs
-    endpoints = np.dot(np.ones((N_sensors,1)), np.matrix(position))+max_dist*\
-                np.matrix(np.array([np.sin(sensor_dirs),np.cos(sensor_dirs)])).T 
+    endpoints = np.array(np.dot(np.ones((N_sensors,1)), np.matrix(position))+max_dist*\
+                np.matrix([np.sin(sensor_dirs),np.cos(sensor_dirs)]).T) 
     
     # define the corners to ultimatively find the intersection points
     corners = np.array([[0.,0.],[0.,y_width],[x_width, y_width],[x_width, 0.]])
@@ -166,20 +159,17 @@ def sense_the_walls(position, N_sensors = 4, x_width = 5, y_width = 5):
     for sensor in range(N_sensors):
         for edge in range(4):
             intersect = geom.getIntersectPoint(corners[edge-1,:], corners[edge,:],\
-                        position, np.array(endpoints[sensor,:])[0])
+                        position, endpoints[sensor,:])[0]
 
             (start_x, end_x) = np.sort((endpoints[sensor,0],position[0]))           
             (start_y, end_y) = np.sort((endpoints[sensor,1],position[1]))
             
-            if (start_x <= intersect[0][0] <= end_x) and (intersect[0][1]<= end_y):
-                    if (0. <= intersect[0][0] <= x_width) and (0. <= intersect[0][1] <= y_width):
-                        intersections[sensor,:] = intersect[0]
+            if (start_x <= intersect[0] <= end_x) and (start_y <= intersect[1]<= end_y):
+                    if (0. <= intersect[0] <= x_width) and (0. <= intersect[1] <= y_width):
+                        intersections[sensor,:] = intersect
      
 
     # compute distances to the intersection points     
     dists = np.linalg.norm(np.dot(np.ones((N_sensors,1)), np.matrix(position))-intersections, axis = 1)  
     
     return intersections, dists
-    
-
-
