@@ -5,12 +5,13 @@ from programming_project import *
 # After sufficiently many steps, did the bat (pretty much) visit every position?
 x_width = 5
 y_width = 5
-r_w = random_walk(x_width,y_width, len_walk = 10000)
+len_walk = 1000
+r_w = random_walk(x_width,y_width, len_walk)
 plt.figure()
 plt.scatter(r_w[:,0],r_w[:,1])
 plt.xlabel('x position')
 plt.ylabel('y position')
-plt.title('room coverage of random walk')
+plt.title('room coverage of random walk, room is %i x %i big and the bat took %i steps'%(x_width, y_width, len_walk))
 
 # plot trajectory (with )
 x_width = 5

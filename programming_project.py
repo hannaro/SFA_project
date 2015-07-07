@@ -22,7 +22,7 @@ def is_outside_wall(x_width, y_width, curr_position):
     boolean: False if position is inside the boundaries given by x_width and
     y_width, True if position is outside the boundaries
     """
-    if (0 < curr_position[0] < x_width) and (0 < curr_position[1] < y_width): 
+    if (0.1 < curr_position[0] < x_width-0.1) and (0.1 < curr_position[1] < y_width-0.1): 
         return False
     else:
         return True
@@ -37,46 +37,56 @@ def random_walk(x_width, y_width, len_walk = 100):
     OUTPUT:
     positions:
     """
-    
+    #intialize positions vector, setting minimum speed and maximum speed
     positions      = np.zeros((len_walk+1,2))
-    max_speed      = y_width/3.
-    min_speed      = y_width/50.
+    max_speed      = y_width/10.
+    min_speed      = y_width/20.
     
+    # intializing velocity vector
     speed_old    = np.random.uniform(min_speed,max_speed) 
     dir_old      = np.random.randint(0,2*np.pi)
     speed_new    = np.random.uniform(min_speed,max_speed) 
     dir_new      = np.random.randint(0,2*np.pi) 
     
+    # computing the initial velocity vector
     velocity_old = speed_old*np.array([np.sin(dir_old),np.cos(dir_old)])
-
-    positions[0,0] = np.around(np.random.uniform(0,x_width))
-    positions[0,1] = np.around(np.random.uniform(0,y_width))
+    
+    # plaxing the bat in a random position in the room
+    positions[0,0] = np.around(np.random.uniform(0.1,x_width-0.1))
+    positions[0,1] = np.around(np.random.uniform(0.1,y_width-0.1))
  
     step = 1
     
     while step < len_walk:
         
+        # compute (random) new velocity vector
         velocity_new = speed_new*np.array([np.sin(dir_new),np.cos(dir_new)])
-        print(velocity_new)
+        
+        # interpolate between the old and the new velocity vector
         f = interp1d([velocity_old[0], velocity_new[0]], [velocity_old[1],velocity_new[1]])
-        mean_x = np.mean([velocity_old[0],velocity_new[0]])
-        velocity_new = f(mean_x) 
         
+        # take a value in the "interpolation range"
+        velocity_x = np.mean([velocity_old[0],velocity_old[0],velocity_new[0]])
+        velocity_new = np.array([velocity_x,f(velocity_x)])
         
-
-        
-        positions[step,:] = np.array([positions[step-1,0]+mean_x,
-                            positions[step-1,1]+velocity_new])
+        # take a step
+        positions[step,:] = np.array([positions[step-1,0]+velocity_new[0],
+                            positions[step-1,1]+velocity_new[1]])
+                            
         if is_outside_wall(x_width, y_width, positions[step,:]):
+            
             while is_outside_wall(x_width, y_width, positions[step,:]):
             
-                dist_to_wall = np.linalg.norm(positions[step-1,:]-positions[step,:])
+                #dist_to_wall = np.linalg.norm(positions[step-1,:]-positions[step,:])
                 change_angle = dir_new+np.pi+np.random.uniform(-0.1*np.pi,0.1*np.pi)
                 
                 # bouncing back to at most 80% of the distance of the wall
-                slowing = np.random.uniform(0.1,0.8)
-                positions[step,:] = np.array([positions[step-1,0]+slowing*dist_to_wall*np.sin(change_angle),
-                                       positions[step-1,1]+slowing*dist_to_wall*np.cos(change_angle)])
+                #slowing = np.random.uniform(0.1,0.8)
+                #slowing = 2.
+                #positions[step,:] = np.array([positions[step-1,0]+slowing*dist_to_wall*np.sin(change_angle),
+                #                       positions[step-1,1]+slowing*dist_to_wall*np.cos(change_angle)])
+                positions[step,:] = np.array([positions[step-1,0]+speed_new*np.sin(change_angle),
+                                       positions[step-1,1]+speed_new*np.cos(change_angle)])
             step += 1
         else:
             step += 1
@@ -89,14 +99,14 @@ def random_walk(x_width, y_width, len_walk = 100):
         
     return positions
     
-def sense_the_walls_orthogonal(position, x_width = 5, y_width = 5):
+    
+def sense_the_walls_orthogonal(position, x_width = 5, y_width = 5, walls = 'ru'):
     """
     This function generates 2 sensors around the bad that are oriented orthogonal 
     to the walls and calculates the respecitve distances to the surrounding walls.
 
     INPUT:
     position: current position of the bat in a 2D array
-    N_sensors: Number of sensors
     x_width: Width in x direction of the room the bat is in 
     y_width: Width in y direction of the room the bat is in
     
@@ -110,17 +120,13 @@ def sense_the_walls_orthogonal(position, x_width = 5, y_width = 5):
     x_pos = position[0]
     y_pos = position[1]
     
-    intersections      = np.zeros([N_sensors,4])    
-    intersections[:,0] = np.array([x_pos,0.])
-    intersections[:,1] = np.array([x_pos,y_width])
-    intersections[:,2] = np.array([0.,y_pos])
-    intersections[:,3] = np.array([x_width,y_pos])
+    intersections      = np.zeros([N_sensors,2])    
+    intersections[:,0] = np.array([x_pos,y_width])
+    intersections[:,1] = np.array([x_width,y_pos])
     
-    dists    = np.zeros(4)
-    dists[0] = y_pos
-    dists[1] = y_width - y_pos
-    dists[2] = x_pos
-    dists[3] = x_width - x_pos
+    dists    = np.zeros(2)
+    dists[0] = y_width - y_pos
+    dists[1] = x_width - x_pos
     
     return intersections, dists
     
