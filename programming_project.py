@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # INTERPOLATION!!
 
 
-def is_outside_wall(x_width, y_width, curr_position):
+def is_outside_wall(x_width, y_width, curr_position, wall_tol = 0.1):
     """
     determines whether a certain location is outside the room defined by x_width
     and y_width
@@ -22,7 +22,8 @@ def is_outside_wall(x_width, y_width, curr_position):
     boolean: False if position is inside the boundaries given by x_width and
     y_width, True if position is outside the boundaries
     """
-    if (0.1 < curr_position[0] < x_width-0.1) and (0.1 < curr_position[1] < y_width-0.1): 
+    if ((wall_tol < curr_position[0] < x_width-wall_tol) \
+                        and (wall_tol < curr_position[1] < y_width-wall_tol)): 
         return False
     else:
         return True
@@ -74,13 +75,18 @@ def random_walk(x_width, y_width, len_walk = 100, weight_smooth = 0.7):
                             positions[step-1,1]+velocity_new[1]])
 
 
-        while is_outside_wall(x_width, y_width, positions[step,:]):
-            
-            change_angle = dir_new+np.pi#+np.random.uniform(-0.01*np.pi,0.01*np.pi)
-            slowing = np.random.uniform(0.01,0.2)
-            positions[step,:] = np.array([positions[step-1,0]+speed_new*slowing*np.sin(change_angle),
-                                   positions[step-1,1]+speed_new*slowing*np.cos(change_angle)])
+        if is_outside_wall(x_width, y_width, positions[step,:]):  ## while?!
 
+            pos_inwall = positions[step-1,:]
+            pos_outwall = positions[step,:]
+
+            intersection, wall_type = get_wall_intersect(pos_inwall, pos_outwall,\
+                            x_width,y_width)  
+            valid_position = bounce_off_wall(intersection,pos_inwall,wall_type,\
+                                                               x_width, y_width)
+                        
+            positions[step,:] = valid_position
+            
         step += 1
         
         velocity_old = velocity_new
@@ -151,27 +157,77 @@ def sense_the_walls(position, N_sensors = 4, x_width = 5, y_width = 5):
     endpoints = np.array(np.dot(np.ones((N_sensors,1)), np.matrix(position))+max_dist*\
                 np.matrix([np.sin(sensor_dirs),np.cos(sensor_dirs)]).T) 
     
-    # define the corners to ultimatively find the intersection points
-    corners = np.array([[0.,0.],[0.,y_width],[x_width, y_width],[x_width, 0.]])
-    
     # initialize matrix of intersection points
     intersections = np.zeros([N_sensors,2])
     
     # compute intersection points for all sensors
-    for sensor in range(N_sensors):
-        for edge in range(4):
-            intersect = geom.getIntersectPoint(corners[edge-1,:], corners[edge,:],\
-                        position, endpoints[sensor,:])[0]
-
-            (start_x, end_x) = np.sort((endpoints[sensor,0],position[0]))           
-            (start_y, end_y) = np.sort((endpoints[sensor,1],position[1]))
-            
-            if (start_x <= intersect[0] <= end_x) and (start_y <= intersect[1]<= end_y):
-                    if (0. <= intersect[0] <= x_width) and (0. <= intersect[1] <= y_width):
-                        intersections[sensor,:] = intersect
-     
+    for sensor in range(N_sensors):    
+        intersections[sensor,:],w_type = get_wall_intersect(position,endpoints[sensor,:],\
+                                                                        x_width,y_width)
 
     # compute distances to the intersection points     
     dists = np.linalg.norm(np.dot(np.ones((N_sensors,1)), np.matrix(position))-intersections, axis = 1)  
     
     return intersections, dists
+    
+    
+def get_wall_intersect(position, endpoint, x_width, y_width):
+    
+    # define the corners to ultimatively find the intersection points
+    corners = np.array([[0.,0.],[0.,y_width],[x_width, y_width],[x_width, 0.]])    
+    
+    for edge in range(4):
+        intersect = geom.getIntersectPoint(corners[edge-1,:], corners[edge,:],\
+                    position, endpoint)[0]
+
+        (start_x, end_x) = np.sort((endpoint[0],position[0]))           
+        (start_y, end_y) = np.sort((endpoint[1],position[1]))
+        
+        if (start_x <= intersect[0] <= end_x) and (start_y <= intersect[1]<= end_y):
+                if (0. <= intersect[0] <= x_width) and (0. <= intersect[1] <= y_width):
+                    intersection = intersect
+                    
+    if intersection[0] in [0,x_width]:
+        wall_type = 'vertical'
+    else:
+        wall_type = 'horizontal'                 
+                    
+    return intersection, wall_type
+    
+
+def bounce_off_wall(intersect,position,wall_type, x_width, y_width,wall_tol = 0.1 ):
+    
+    if wall_type == 'vertical':
+        
+        # get the vertical difference and the sign
+        v_diff = intersect[1]-position[1]
+        sign_v_diff = np.sign(v_diff)
+        
+        # determine distance to the wall we hit
+        if sign_v_diff < 0:
+            dist_to_wall = position[1]
+        else:
+            dist_to_wall = y_width - position[1]
+        
+        # walk parallel to wall (einfallswinkel = ausfallswinkel) until you hit next wall
+        walk_y = min([dist_to_wall-wall_tol, 2*abs(v_diff)])
+        pos_valid = np.array([position[0], position[1] + sign_v_diff*walk_y ])
+        
+    if wall_type == 'horizontal':
+        
+        # get horizontal difference
+        v_diff = intersect[0]-position[0]
+        sign_v_diff = np.sign(v_diff)
+        
+        # determine distance to the wall we hit
+        if sign_v_diff < 0:
+            dist_to_wall = position[0]
+        else:
+            dist_to_wall = x_width - position[0]
+            
+        # walk parallel to wall unless we hit the next
+        walk_x = min([dist_to_wall-wall_tol, 2*abs(v_diff)])
+        pos_valid = np.array([position[0] + sign_v_diff*walk_x, position[1]])
+        
+    return pos_valid
+            
