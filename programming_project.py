@@ -39,8 +39,8 @@ def random_walk(x_width, y_width, len_walk = 100, weight_smooth = 0.7):
     """
     #intialize positions vector, setting minimum speed and maximum speed
     positions      = np.zeros((len_walk+1,2))
-    max_speed      = y_width/5.
-    min_speed      = y_width/20.
+    max_speed      = (y_width*x_width)/5.
+    min_speed      = (y_width*x_width)/10.
     
     # intializing velocity vector
     speed_old    = np.random.uniform(min_speed,max_speed) 
@@ -73,12 +73,14 @@ def random_walk(x_width, y_width, len_walk = 100, weight_smooth = 0.7):
         positions[step,:] = np.array([positions[step-1,0]+velocity_new[0],
                             positions[step-1,1]+velocity_new[1]])
 
-            
+
         while is_outside_wall(x_width, y_width, positions[step,:]):
             
-            change_angle = dir_new+np.pi+np.random.uniform(-0.01*np.pi,0.01*np.pi)
-            positions[step,:] = np.array([positions[step-1,0]+speed_new*np.sin(change_angle),
-                                   positions[step-1,1]+speed_new*np.cos(change_angle)])
+            change_angle = dir_new+np.pi#+np.random.uniform(-0.01*np.pi,0.01*np.pi)
+            slowing = np.random.uniform(0.01,0.2)
+            positions[step,:] = np.array([positions[step-1,0]+speed_new*slowing*np.sin(change_angle),
+                                   positions[step-1,1]+speed_new*slowing*np.cos(change_angle)])
+
         step += 1
         
         velocity_old = velocity_new
