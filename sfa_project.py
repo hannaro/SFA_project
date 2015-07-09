@@ -98,37 +98,37 @@ def random_walk(x_width, y_width, len_walk = 100, weight_smooth = 0.7):
     
     
     
-def sense_the_walls_orthogonal(position, x_width = 5, y_width = 5, walls = 'ru'):
-    """
-    This function generates 2 sensors around the bad that are oriented orthogonal 
-    to the walls and calculates the respecitve distances to the surrounding walls.
-
-    INPUT:
-    position: current position of the bat in a 2D array
-    x_width: Width in x direction of the room the bat is in 
-    y_width: Width in y direction of the room the bat is in
+#def sense_the_walls_orthogonal(random_walk, x_width = 5, y_width = 5, walls = 'ru'):
+#    """
+#    This function generates 2 sensors around the bad that are oriented orthogonal 
+#    to the walls and calculates the respecitve distances to the surrounding walls.
+#
+#    INPUT:
+#    position: current position of the bat in a 2D array
+#    x_width: Width in x direction of the room the bat is in 
+#    y_width: Width in y direction of the room the bat is in
+#    
+#    OUTPUT:
+#    intersections: points on the walls where the vectors coming from the current
+#                   position in the ith sensors direction intersect the walls
+#    dists: distance to the walls (distance between the current location and 
+#            each respective intersection of the "sensor vectors" with the walls)
+#    """    
+#    N_sensors = 2
+#    x_pos = position[0]
+#    y_pos = position[1]
+#    
+#    intersections      = np.zeros([N_sensors,2])    
+#    intersections[:,0] = np.array([x_pos,y_width])
+#    intersections[:,1] = np.array([x_width,y_pos])
+#    
+#    dists    = np.zeros(2)
+#    dists[0] = y_width - y_pos
+#    dists[1] = x_width - x_pos
+#    
+#    return intersections, dists
     
-    OUTPUT:
-    intersections: points on the walls where the vectors coming from the current
-                   position in the ith sensors direction intersect the walls
-    dists: distance to the walls (distance between the current location and 
-            each respective intersection of the "sensor vectors" with the walls)
-    """    
-    N_sensors = 2
-    x_pos = position[0]
-    y_pos = position[1]
-    
-    intersections      = np.zeros([N_sensors,2])    
-    intersections[:,0] = np.array([x_pos,y_width])
-    intersections[:,1] = np.array([x_width,y_pos])
-    
-    dists    = np.zeros(2)
-    dists[0] = y_width - y_pos
-    dists[1] = x_width - x_pos
-    
-    return intersections, dists
-    
-def sense_the_walls(position, N_sensors = 4, x_width = 5, y_width = 5):
+def sense_the_walls(random_walk, N_sensors = 4, x_width = 5, y_width = 5, orthogonal = False):
     """
     This function generates N sensors around the bad (in randomly distributed directions)
     and calculates the respecitve distances to the surrounding walls.
@@ -146,41 +146,69 @@ def sense_the_walls(position, N_sensors = 4, x_width = 5, y_width = 5):
             each respective intersection of the "sensor vectors" with the walls)
     """    
     
-    # calculate the maximal distance to ensure that there will be an intersection
-    # that can be detected for every snesor
-    max_dist = np.linalg.norm(np.array([x_width, y_width]))
+    n_rw, d = np.shape(random_walk) 
     
-    # generate random directions for the sensors
-    sensor_dirs = np.random.uniform(0,2*np.pi,N_sensors)
+    if orthogonal == True:
+        
+        N_sensors = 2
+        x_pos = random_walk[:,0]
+        y_pos = random_walk[:,1]
+        
+        # calculate intersections
+        intersections = np.zeros([n_rw,2,N_sensors])
+        intersections[:,0,0] = x_pos
+        intersections[:,1,0] = np.ones(n_rw)*y_width
+        intersections[:,0,1] = np.ones(n_rw)*x_width
+        intersections[:,1,1] = y_pos
+        
+        # calculate distances
+        dists = np.zeros([n_rw,2])
+        dists[:,0] = np.ones(n_rw)*y_width - y_pos
+        dists[:,1] = np.ones(n_rw)*x_width - x_pos
+        
+    else:
+        # calculate the maximal distance to ensure that there will be an intersection
+        # that can be detected for every snesor
+        max_dist = np.linalg.norm(np.array([x_width, y_width]))
+        
+        # generate random directions for the sensors
+        sensor_dirs = np.random.uniform(0,2*np.pi,N_sensors)
+        
+        # calculate the "endpoints" of the sensor vecotrs
+        endpoints = np.zeros([n_rw,2,N_sensors])
+        
+        for i in range(N_sensors):
+            endpoints[:,:,i] = np.array([random_walk[:,0]+max_dist*np.sin(sensor_dirs[i]),\
+                                         random_walk[:,1]+max_dist*np.cos(sensor_dirs[i])]).T
+        
+        # define the corners to ultimatively find the intersection points
+        corners = np.array([[0.,0.],[0.,y_width],[x_width, y_width],[x_width, 0.]])
+        
+        # initialize matrix of intersection points
+        intersections = np.zeros([n_rw,2,N_sensors])
+        dists = np.zeros([n_rw, N_sensors])
+        
+        # compute intersection points for all sensors
+        for sensor in range(N_sensors):
+            for pos in range(n_rw):
+                for edge in range(4):
+                    intersect = geom.getIntersectPoint(corners[edge-1,:], corners[edge,:],\
+                                random_walk[pos,:], endpoints[pos,:,sensor])[0]
+        
+                    (start_x, end_x) = np.sort((endpoints[pos,0,sensor],random_walk[pos,0]))           
+                    (start_y, end_y) = np.sort((endpoints[pos,1,sensor],random_walk[pos,1]))
+                    
+                    if (start_x <= intersect[0] <= end_x) and (start_y <= intersect[1]<= end_y):
+                            if (0. <= intersect[0] <= x_width) and (0. <= intersect[1] <= y_width):
+                                intersections[pos,:,sensor] = intersect
+         
     
-    # calculate the "endpoints" of the sensor vecotrs
-    endpoints = np.array(np.dot(np.ones((N_sensors,1)), np.matrix(position))+max_dist*\
-                np.matrix([np.sin(sensor_dirs),np.cos(sensor_dirs)]).T) 
-    
-    # define the corners to ultimatively find the intersection points
-    corners = np.array([[0.,0.],[0.,y_width],[x_width, y_width],[x_width, 0.]])
-    
-    # initialize matrix of intersection points
-    intersections = np.zeros([N_sensors,2])
-    
-    # compute intersection points for all sensors
-    for sensor in range(N_sensors):
-        for edge in range(4):
-            intersect = geom.getIntersectPoint(corners[edge-1,:], corners[edge,:],\
-                        position, endpoints[sensor,:])[0]
-
-            (start_x, end_x) = np.sort((endpoints[sensor,0],position[0]))           
-            (start_y, end_y) = np.sort((endpoints[sensor,1],position[1]))
-            
-            if (start_x <= intersect[0] <= end_x) and (start_y <= intersect[1]<= end_y):
-                    if (0. <= intersect[0] <= x_width) and (0. <= intersect[1] <= y_width):
-                        intersections[sensor,:] = intersect
-     
-
-    # compute distances to the intersection points     
-    dists = np.linalg.norm(np.dot(np.ones((N_sensors,1)), np.matrix(position))-intersections, axis = 1)  
-    
+            # compute distances to the intersection points     
+            dists[:,sensor] = np.linalg.norm(random_walk-intersections[:,:,sensor], axis = 1)  
+        
     return intersections, dists
+    
+
     
 def get_intersection(position, endpoint, x_width, y_width):
     corners = np.array([[0.,0.],[0.,y_width],[x_width, y_width],[x_width, 0.]])
