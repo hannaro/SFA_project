@@ -1,51 +1,55 @@
 # file that tests functions in programming_project.py
 
-from programming_project import *
+import sfa_bat as bat
+import sfa_analysis as analysis
+import sfa_plotting as sfap
+import matplotlib.pyplot as plt
+plt.style.use('ggplot') 
+import numpy as np
 
 # After sufficiently many steps, did the bat (pretty much) visit every position?
 x_width = 5
 y_width = 5
-len_walk = 1000
-r_w = random_walk(x_width,y_width, len_walk)
-plt.figure()
-plt.scatter(r_w[:,0],r_w[:,1])
-plt.xlabel('x position')
-plt.ylabel('y position')
-plt.title('room coverage of random walk, room is %i x %i big and the bat took %i steps'%(x_width, y_width, len_walk))
+r_w = bat.random_walk(x_width,y_width, 2000)
+sfap.plot_random_walk(r_w,x_width,y_width,', Room Coverage',trajectory = False,\
+                                                            color_code = True)
 
-# plot trajectory (with )
+# plot trajectory
+
 x_width = 3
 y_width = 5
-r_w = random_walk(x_width,y_width, len_walk = 200)
-plt.figure(figsize = (x_width, y_width))
-plt.scatter(r_w[:,0],r_w[:,1],c=np.arange(len(r_w[:,0])))
-plt.plot(r_w[:,0],r_w[:,1])
-plt.xlim(0,x_width)
-plt.ylim(0,y_width)
-plt.xlabel('x position')
-plt.ylabel('y position')
-plt.title('trajectory')
-
-
-distances = np.zeros((200,2))
-for i in range(200):
-    intersects, dists = sense_the_walls_orthogonal(r_w[i,:],x_width = 3, y_width = 5)
-    distances[i,:] = dists
-
-plt.figure()
-plt.plot(distances[:,0])
-plt.plot(distances[:,1])
-plt.xlabel('time (discrete steps)')
-plt.ylabel('distance to the respective wall')
+r_w = bat.random_walk(x_width,y_width, 500)
+sfap.plot_random_walk(r_w,x_width,y_width,', Trajectory',trajectory = True,\
+                                                            color_code = True)
 
 
 
+######### task 3 ##########
 
-# plot the vectors from the current position to the walls with 4 random sensors   
-position = np.array([1,1])
-x_width = 2
+# do long random walk and plot
+
+x_width = 5
 y_width = 5
-intersects, dists = sense_the_walls_orthogonal(position,x_width,y_width) #sense_the_walls(position)
+r_w = bat.random_walk(x_width,y_width, len_walk = 10000)
+
+intersects, sensory_data = bat.sense_the_walls(r_w, x_width = x_width, \
+                                            y_width = y_width)
+slow = analysis.sfa(sensory_data, N_sensors = 4, poly_degree = 3, whitening = True)
+sfap.plot_SF(slow, r_w, ', orthogonal sensors',n_sf = 4)
+
+
+
+
+
+
+###### plot the vectors from the current position to the walls with 4 random sensors   
+
+
+#position = np.array([1,1])
+#x_width = 2
+#y_width = 5
+#intersects, dists = bat.sense_the_walls_orthogonal(position,x_width,y_width) #sense_the_walls(position)
+
 #(N,d) = np.shape(intersects)
 #plt.figure(figsize = (5,5))
 #plt.scatter(intersects[:,0],intersects[:,1])

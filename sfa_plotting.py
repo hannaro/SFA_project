@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('ggplot') 
 
-def plot_SF(sfa_data,random_walk,n_sf,sensor_info):
+def plot_SF(sfa_data,random_walk,sensor_info,n_sf = 2):
     
     for sf in range(n_sf):
         
         plt.figure()
         plt.title('Slow Feature %i'%(sf+1)+sensor_info)
-        plt.scatter(random_walk[:,0],random_walk[:,1],c = sfa_data)
+        plt.scatter(random_walk[:,0],random_walk[:,1],c = sfa_data[:,sf])
         plt.xlabel('x position')
         plt.ylabel('y position')
         plt.show()
