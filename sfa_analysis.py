@@ -2,8 +2,9 @@ import numpy as np
 import mdp
 
 
-def sfa(sensory_input, N_sensors = 4, poly_degree = 3, whitening = False, ica = False,
-                                                        out_dim = None):
+def sfa(sensory_input, x_width, y_width, N_sensors = 4, poly_degree = 1, \
+         whitening = False, grid_resolution = 10.,ica = False, out_dim = None,
+         orthogonal = False):
 
     if whitening:
         
@@ -26,6 +27,4 @@ def sfa(sensory_input, N_sensors = 4, poly_degree = 3, whitening = False, ica = 
              
     flow.train(sensory_input)
     
-    slow = flow(sensory_input)
-    
-    return slow
+    return flow

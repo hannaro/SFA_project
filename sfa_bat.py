@@ -128,12 +128,32 @@ def random_walk(x_width, y_width, len_walk = 100, weight_smooth = 0.7):
 #    
 #    return intersections, dists
     
-def sense_the_walls(random_walk, N_sensors = 4, x_width = 5, y_width = 5, orthogonal = False):
+def grid_walk(x_width,y_width,wall_gap = 0.01, grid_resolution = 10.):
+    
+    x = np.linspace(wall_gap,x_width-wall_gap,grid_resolution*x_width,endpoint = True)
+    y = np.linspace(wall_gap,y_width-wall_gap,grid_resolution*y_width,endpoint = True)    
+    len_x = len(x)
+    len_y = len(y)
+    grid = np.zeros((len(x)*len(y),2))    
+    for i in range(len(x)):
+        for j in range(len(y)):
+            grid[i*len(y)+j,:] = np.array([x[i],y[j]])
+            
+    return grid, len_x, len_y
+    
+    
+def back_to_grid(grid, len_x, len_y):
+    
+    return np.reshape(grid, (len_x,len_y,np.shape(grid)[1]))
+    
+    
+def sense_the_walls(random_walk, sensor_dirs = np.zeros(4) , N_sensors = 4,\
+                                x_width = 5, y_width = 5, orthogonal = False):
     """
     This function generates N sensors around the bad (in randomly distributed directions)
     and calculates the respecitve distances to the surrounding walls.
 
-    INPUT:
+    INPUT
     position: current position of the bat in a 2D array
     N_sensors: Number of sensors
     x_width: Width in x direction of the room the bat is in 
@@ -166,13 +186,16 @@ def sense_the_walls(random_walk, N_sensors = 4, x_width = 5, y_width = 5, orthog
         dists[:,0] = np.ones(n_rw)*y_width - y_pos
         dists[:,1] = np.ones(n_rw)*x_width - x_pos
         
+        sensor_dirs = np.array([0,np.pi/2.])
+        
     else:
         # calculate the maximal distance to ensure that there will be an intersection
         # that can be detected for every snesor
         max_dist = np.linalg.norm(np.array([x_width, y_width]))
         
         # generate random directions for the sensors
-        sensor_dirs = np.random.uniform(0,2*np.pi,N_sensors)
+        if (sensor_dirs == 0).all():
+            sensor_dirs = np.random.uniform(0,2*np.pi,N_sensors)
         
         # calculate the "endpoints" of the sensor vecotrs
         endpoints = np.zeros([n_rw,2,N_sensors])
@@ -206,7 +229,7 @@ def sense_the_walls(random_walk, N_sensors = 4, x_width = 5, y_width = 5, orthog
             # compute distances to the intersection points     
             dists[:,sensor] = np.linalg.norm(random_walk-intersections[:,:,sensor], axis = 1)  
         
-    return intersections, dists
+    return intersections, dists, sensor_dirs
     
 
     
