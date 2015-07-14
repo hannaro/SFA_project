@@ -1,13 +1,6 @@
-#import mdp as tools
-import numpy as np
 import geometry as geom
-from matplotlib import collections  as mc
 import numpy as np
 from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
-
-# INCORPORATE: DONT GET TOO CLOSE TO THE WALL!!
-# INTERPOLATION!!
 
 
 def is_outside_wall(x_width, y_width, curr_position):
@@ -26,6 +19,7 @@ def is_outside_wall(x_width, y_width, curr_position):
         return False
     else:
         return True
+
 
 def random_walk(x_width, y_width, len_walk = 100, weight_smooth = 0.7):
     """
@@ -96,37 +90,6 @@ def random_walk(x_width, y_width, len_walk = 100, weight_smooth = 0.7):
         
     return positions
     
-    
-    
-#def sense_the_walls_orthogonal(random_walk, x_width = 5, y_width = 5, walls = 'ru'):
-#    """
-#    This function generates 2 sensors around the bad that are oriented orthogonal 
-#    to the walls and calculates the respecitve distances to the surrounding walls.
-#
-#    INPUT:
-#    position: current position of the bat in a 2D array
-#    x_width: Width in x direction of the room the bat is in 
-#    y_width: Width in y direction of the room the bat is in
-#    
-#    OUTPUT:
-#    intersections: points on the walls where the vectors coming from the current
-#                   position in the ith sensors direction intersect the walls
-#    dists: distance to the walls (distance between the current location and 
-#            each respective intersection of the "sensor vectors" with the walls)
-#    """    
-#    N_sensors = 2
-#    x_pos = position[0]
-#    y_pos = position[1]
-#    
-#    intersections      = np.zeros([N_sensors,2])    
-#    intersections[:,0] = np.array([x_pos,y_width])
-#    intersections[:,1] = np.array([x_width,y_pos])
-#    
-#    dists    = np.zeros(2)
-#    dists[0] = y_width - y_pos
-#    dists[1] = x_width - x_pos
-#    
-#    return intersections, dists
     
 def grid_walk(x_width,y_width,wall_gap = 0.01, grid_resolution = 10.):
     
@@ -257,6 +220,7 @@ def get_intersection(position, endpoint, x_width, y_width):
                     intersection = intersect
     return intersection
     
+    
 def get_wall_type(intersection,x_width):
     
     if intersection[0] in [0.,x_width]:
@@ -266,7 +230,8 @@ def get_wall_type(intersection,x_width):
         wall_type = 'horizontal'
     
     return wall_type
-    
+  
+  
 def bounce(position, intersection, wall_type, x_width, y_width):
     if wall_type == 'vertical':
         diff = intersection[1]-position[1]
